@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.lingonary_.ui.theme.TextBlack
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -139,7 +140,7 @@ fun PlayerScreen(
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                 IconButton(onClick = onBackClick) { Icon(Icons.Filled.ArrowBack, "Back", tint = Color.Black) }
                 Spacer(modifier = Modifier.weight(1f))
-                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = TextBlack)
                 Spacer(modifier = Modifier.weight(1f))
                 IconButton(onClick = { }) { Icon(Icons.Filled.Favorite, "Like", tint = Color.Black) }
             }
