@@ -156,7 +156,7 @@ fun PlayerScreen(
                             }
                         }
                     },
-                    fontSize = 24.sp, lineHeight = 32.sp,
+                    fontSize = 32.sp, lineHeight = 48.sp,
                     onTextLayout = { layoutResult = it },
                     modifier = Modifier.pointerInput(Unit) {
                         detectTapGestures { pos ->
