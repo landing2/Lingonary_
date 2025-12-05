@@ -155,7 +155,7 @@ fun PodcastItem(podcast: Podcast, onPodcastClick: (Podcast) -> Unit) {
                 .clip(RoundedCornerShape(12.dp)),
             contentScale = ContentScale.Crop
         )
-        Text(text = podcast.title, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(text = podcast.title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
     }
 }
 
