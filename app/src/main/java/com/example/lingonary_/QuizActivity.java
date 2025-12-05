@@ -78,27 +78,44 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
     private void loadNewQuestion() {
+        if (quizList == null || quizList.isEmpty()) {
+            finish();
+            return;
+        }
         if (currentQuestionIndex >= quizList.size()) {
             finish();
             return;
         }
-
         resetButtonStyles();
         currentWord = quizList.get(currentQuestionIndex);
-
-        // 2. Mark as Seen and Save immediately
         currentWord.setHasBeenInQuiz(true);
         saveWordProgress(currentWord);
-
         titleVamos.setText(currentWord.getLearning());
         progressBar.setProgress(currentQuestionIndex + 1);
-        List<Word> options = new ArrayList<>(wordList);
-        options.remove(currentWord);
-        Collections.shuffle(options);
-        Collections.shuffle(optionButtons);
-        optionButtons.get(0).setText(currentWord.getNativeLang());
-        for (int i = 1; i < optionButtons.size(); i++) {
-            optionButtons.get(i).setText(options.get(i - 1).getNativeLang());
+
+        List<Word> answerPool = new ArrayList<>();
+        answerPool.add(currentWord);
+
+        List<Word> potentialDistractors = new ArrayList<>(wordList);
+        potentialDistractors.remove(currentWord); // Remove the correct answer so it's not added twice
+        Collections.shuffle(potentialDistractors);
+
+        int distractorsNeeded = 3;
+        for (int i = 0; i < distractorsNeeded && i < potentialDistractors.size(); i++) {
+            answerPool.add(potentialDistractors.get(i));
+        }
+        Collections.shuffle(answerPool);
+
+        for (int i = 0; i < optionButtons.size(); i++) {
+            Button btn = optionButtons.get(i);
+
+            if (i < answerPool.size()) {
+                btn.setVisibility(View.VISIBLE);
+                btn.setText(answerPool.get(i).getNativeLang());
+                btn.setEnabled(true);
+            } else {
+                btn.setVisibility(View.GONE);
+            }
         }
     }
 

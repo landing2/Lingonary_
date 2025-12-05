@@ -2,11 +2,13 @@ package com.example.lingonary_
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -29,7 +31,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             Lingonary_Theme {
                 val context = LocalContext.current
-                val lifecycleOwner = LocalLifecycleOwner.current // 🟢 1. Get Lifecycle Owner
+                val lifecycleOwner = LocalLifecycleOwner.current
                 // Navigation State
                 var currentScreen by remember { mutableStateOf("home") }
                 var selectedWordObj by remember { mutableStateOf<Word?>(null) }
@@ -44,7 +46,6 @@ class MainActivity : ComponentActivity() {
                 DisposableEffect(lifecycleOwner) {
                     val observer = LifecycleEventObserver { _, event ->
                         if (event == Lifecycle.Event.ON_RESUME) {
-                            // User came back (e.g. from Quiz) -> Reload Data!
                             coroutineScope.launch(Dispatchers.IO) {
                                 savedWordsList = wordDao.getAllSavedWords()
                             }
@@ -114,9 +115,18 @@ class MainActivity : ComponentActivity() {
                                     val allWords = wordDao.getAllWords()
                                     val wordArrayList = ArrayList(allWords)
                                     withContext(Dispatchers.Main) {
-                                        val intent = Intent(context, QuizActivity::class.java)
-                                        intent.putParcelableArrayListExtra("wordList", wordArrayList)
-                                        context.startActivity(intent)
+                                        if (allWords.size < 4) {
+                                            Toast.makeText(
+                                                context,
+                                                "Save at least 4 words to start a quiz!",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        } else {
+                                            val wordArrayList = ArrayList(allWords)
+                                            val intent = Intent(context, QuizActivity::class.java)
+                                            intent.putParcelableArrayListExtra("wordList", wordArrayList)
+                                            context.startActivity(intent)
+                                        }
                                     }
                                 }
                             }
