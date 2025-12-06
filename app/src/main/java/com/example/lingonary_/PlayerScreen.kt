@@ -61,6 +61,7 @@ fun PlayerScreen(
     savedWords: List<String>,
     onSaveWord: (WordTimestamp) -> Unit,
     onUnsaveWord: (WordTimestamp) -> Unit,
+    onGotoLibrary:() -> Unit,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -149,7 +150,7 @@ fun PlayerScreen(
                 Spacer(modifier = Modifier.weight(1f))
                 Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = TextBlack)
                 Spacer(modifier = Modifier.weight(1f))
-                IconButton(onClick = { }) { Icon(Icons.Filled.Favorite, "Like", tint = Color.Black) }
+                IconButton(onClick = onGotoLibrary) { Icon(painterResource(id = R.drawable.ic_wordlib), "Word Library", tint = Color.Black) }
             }
             // Transcript
             Column(modifier = Modifier.weight(1f).verticalScroll(scrollState).onSizeChanged { columnHeightPx = it.height }) {

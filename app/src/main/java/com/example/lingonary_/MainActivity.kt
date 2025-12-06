@@ -157,7 +157,8 @@ class MainActivity : ComponentActivity() {
                                     savedWordsList = wordDao.getAllSavedWords()
                                 }
                             },
-                            onBackClick = { currentScreen = "home" }
+                            onBackClick = { currentScreen = "home" },
+                            onGotoLibrary = { currentScreen = "wordlib" }
                         )
 
                         "wordlib" -> WordLibraryScreen(
