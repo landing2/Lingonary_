@@ -22,7 +22,7 @@ Our Main Features:
 
 ### Clone the Repository
 ```
-git clone https://github.com/awelotta/Lingonary.git
+git clone https://github.com/landing2/Lingonary_.git
 cd Lingonary
 ```
 
