@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -83,21 +84,40 @@ fun HomeScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(width = 60.dp, height = 26.dp)
-                            .background(BadgeYellow, RoundedCornerShape(13.dp))
-                            .border(1.dp, BlackStroke, RoundedCornerShape(13.dp)),
+                            .width(75.dp)
+                            .height(38.dp)
+                            .background(BadgeYellow, RoundedCornerShape(19.dp))
+                            .border(1.dp, BlackStroke, RoundedCornerShape(19.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "Chinese",
-                            style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "Learning:",
+                                style = TextStyle(
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color.Black
+                                )
+                            )
+                            Text(
+                                text = "Spanish",
+                                style = TextStyle(
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
                     Image(
                         painter = painterResource(id = R.drawable.ic_avatar_face),
                         contentDescription = "User",
-                        modifier = Modifier.size(40.dp).clip(CircleShape)
+                        modifier = Modifier.size(45.dp).clip(CircleShape)
                     )
                 }
             }
