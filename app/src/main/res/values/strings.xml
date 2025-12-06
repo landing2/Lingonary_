@@ -1,3 +1,19 @@
 <resources>
     <string name="app_name">Lingonary_</string>
+    <string name="onboarding_name_title">Hi! What\'s your name?</string>
+    <string name="onboarding_hint_name">Enter your name here…</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_back">Back</string>
+    <string name="error_name_empty">Please enter your name</string>
+    <!-- Page 2 -->
+    <string name="onboarding_q_native">What is your native language?</string>
+    <!-- Page 3 -->
+    <string name="onboarding_q_learning">Which language do you want to learn?</string>
+    <string name="error_learning_language_empty">Please choose a language to learn</string>
+    <!-- Languages -->
+    <string name="lang_english">English</string>
+    <string name="lang_chinese">Chinese</string>
+    <string name="lang_spanish">Spanish</string>
+    <!-- Shared -->
+    <string name="error_language_empty">Please choose a language</string>
 </resources>
