@@ -19,6 +19,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Forward5
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Replay5
 import androidx.compose.material3.*
@@ -27,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -41,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.example.lingonary_.ui.theme.TextBlack
 import kotlinx.coroutines.delay
 import kotlin.random.Random
+
 
 val LingoGreen = Color(0xFF2E5E38)
 val LingoGrey = Color(0xFFC0C0C0)
@@ -243,7 +247,8 @@ fun PlayerScreen(
                             }
                     ) {
                         Icon(
-                            painterResource(if (isPlaying) R.drawable.ic_stop else R.drawable.ic_play_),
+                            imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+//                            painterResource(if (isPlaying) R.drawable.ic_stop else R.drawable.ic_play_),
                             if (isPlaying) "Stop" else "Play",
                             Modifier.size(32.dp),
                             tint = Color.Black
