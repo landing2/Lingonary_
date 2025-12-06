@@ -25,6 +25,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.example.lingonary_.database.WordDatabase
 import com.example.lingonary_.models.Podcast
 import com.example.lingonary_.models.Word
+import com.example.lingonary_.onboarding.OnboardingKeys
 import com.example.lingonary_.ui.theme.Lingonary_Theme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,6 +39,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             Lingonary_Theme {
                 val context = LocalContext.current
+                val username: String = this.intent!!.extras!!.get(OnboardingKeys.EXTRA_USER_NAME) as String
                 val lifecycleOwner = LocalLifecycleOwner.current
                 val allPodcasts = remember {
                     listOf(
@@ -119,6 +121,7 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     when (currentScreen) {
                         "home" -> HomeScreen(
+                            username = username,
                             featuredPodcasts = featuredPodcasts,
                             recentPodcasts = recentPodcasts,
                             allPodcasts = allPodcasts,

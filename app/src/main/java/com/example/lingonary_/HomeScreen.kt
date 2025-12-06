@@ -29,6 +29,7 @@ import com.example.lingonary_.ui.theme.*
 
 @Composable
 fun HomeScreen(
+    username: String,
     featuredPodcasts: List<Podcast>,
     recentPodcasts: List<Podcast>,
     allPodcasts: List<Podcast>,
@@ -69,7 +70,7 @@ fun HomeScreen(
                 // Greeting
                 Column {
                     Text(
-                        text = "Hello Eliana!",
+                        text = "Hello $username!",
                         style = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold, color = TextBlack)
                     )
                     Box(
@@ -117,7 +118,9 @@ fun HomeScreen(
                     Image(
                         painter = painterResource(id = R.drawable.ic_avatar_face),
                         contentDescription = "User",
-                        modifier = Modifier.size(45.dp).clip(CircleShape)
+                        modifier = Modifier
+                            .size(45.dp)
+                            .clip(CircleShape)
                     )
                 }
             }
