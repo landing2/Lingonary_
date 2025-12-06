@@ -120,13 +120,19 @@ fun AudioWaveformPlayer(
     var isPlaying by remember { mutableStateOf(false) }
 
     // Initialize MediaPlayer
-    val mediaPlayer = remember { MediaPlayer.create(context, audioResId) }
+    val mediaPlayer = remember {
+        try {
+            MediaPlayer.create(context, audioResId)
+        } catch (e:Exception) {
+            null
+        }
+    }
     DisposableEffect(Unit) {
-        onDispose { mediaPlayer.release() }
+        onDispose { mediaPlayer?.release() }
     }
     //  Stop playing when we reach the endTime
     LaunchedEffect(isPlaying) {
-        if (isPlaying) {
+        if (isPlaying && mediaPlayer != null) {
             val duration = endTime - startTime
             // Wait for the duration of the clip, then pause
             if (duration > 0) {
@@ -145,16 +151,18 @@ fun AudioWaveformPlayer(
         modifier = Modifier
             .fillMaxWidth()
             .height(60.dp)
-            .clickable {
-                if (isPlaying) {
-                    mediaPlayer.pause()
-                    isPlaying = false
-                } else {
-                    //Seek to start time before playing
-                    mediaPlayer.seekTo(startTime)
-                    mediaPlayer.start()
-                    isPlaying = true
-                    mediaPlayer.setOnCompletionListener { isPlaying = false }
+            .clickable(enabled = mediaPlayer != null){
+                mediaPlayer?.let { player ->
+                    if (isPlaying) {
+                        player.pause()
+                        isPlaying = false
+                    } else {
+                        //Seek to start time before playing
+                        player.seekTo(startTime)
+                        player.start()
+                        isPlaying = true
+                        player.setOnCompletionListener { isPlaying = false }
+                    }
                 }
             },
         verticalAlignment = Alignment.CenterVertically,

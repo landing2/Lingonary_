@@ -34,13 +34,26 @@ import java.util.ArrayList
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val testTitle = "Tradición Navideña"
+
         setContent {
             Lingonary_Theme {
                 val context = LocalContext.current
                 val lifecycleOwner = LocalLifecycleOwner.current
                 val allPodcasts = remember {
-                    List(9) { i -> Podcast(title = "Podcast ${i + 1}") }
+                    listOf(
+                        Podcast(
+                            title = "Tradición Navideña",
+                            description = "Learn about Christmas traditions in Spanish culture.",
+                            jsonFileName = "tradicion_navidena.json",
+                            audioResId = R.raw.tradicion_navidena
+                        ),
+                        Podcast(
+                            title = "Letras de la Luz",
+                            description = "Photography history in Tijuana and its authors.",
+                            jsonFileName = "fotos_tijuana.json",
+                            audioResId = R.raw.fotos_tijuana
+                        )
+                    )
                 }
                 var currentScreen by remember { mutableStateOf("home") }
                 var selectedWordObj by remember { mutableStateOf<Word?>(null) }
@@ -57,21 +70,23 @@ class MainActivity : ComponentActivity() {
                     sharedPrefs.edit().putStringSet("recent_podcasts", emptySet()).apply()
                     recentPodcastTitles = emptySet()
                 }
+                // Database
                 val coroutineScope = rememberCoroutineScope()
                 val db = remember { WordDatabase.getInstance(context) }
                 val wordDao = remember { db.wordDao() }
-                val transcriptData = remember { loadTranscriptFromJson(context, "tradicion_navidena.json") }
+                var currentTranscript by remember { mutableStateOf<List<WordTimestamp>>(emptyList()) }
+                var currentAudioId by remember { mutableIntStateOf(0) }
+                var currentPodcastTitle by remember { mutableStateOf("") }
+
                 var savedWordsList by remember { mutableStateOf<List<Word>>(emptyList()) }
                 var currentMasteryThreshold by remember { mutableIntStateOf(6) }
+
                 DisposableEffect(lifecycleOwner) {
                     val observer = LifecycleEventObserver { _, event ->
                         if (event == Lifecycle.Event.ON_RESUME) {
                             coroutineScope.launch(Dispatchers.IO) {
-                                // 1. Refresh Words
                                 savedWordsList = wordDao.getAllSavedWords()
-                                // 2. Refresh Threshold Setting
-                                val prefs = context.getSharedPreferences("lingonary_prefs", Context.MODE_PRIVATE)
-                                currentMasteryThreshold = prefs.getInt("mastery_threshold", 6)
+                                currentMasteryThreshold = sharedPrefs.getInt("mastery_threshold", 6)
                             }
                         }
                     }
@@ -80,22 +95,27 @@ class MainActivity : ComponentActivity() {
                         lifecycleOwner.lifecycle.removeObserver(observer)
                     }
                 }
+                // Podcast Dialog
                 if (selectedPodcast != null) {
                     PodcastDetailDialog(
                         podcast = selectedPodcast!!,
                         onDismiss = { selectedPodcast = null },
                         onPlayClick = {
                             val podcastToPlay = selectedPodcast!!
+                            currentTranscript = loadTranscriptFromJson(context, podcastToPlay.jsonFileName)
+
+                            currentAudioId = podcastToPlay.audioResId
+                            currentPodcastTitle = podcastToPlay.title
+
                             val updatedTitles = recentPodcastTitles + podcastToPlay.title
                             sharedPrefs.edit().putStringSet("recent_podcasts", updatedTitles).apply()
-                            recentPodcastTitles = updatedTitles
+
                             selectedPodcast = null
                             currentScreen = "player"
                         }
                     )
                 }
 
-                // --- MAIN NAVIGATION ---
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     when (currentScreen) {
                         "home" -> HomeScreen(
@@ -111,17 +131,16 @@ class MainActivity : ComponentActivity() {
                         "setting" -> SettingsScreen(
                             onBackClick = { currentScreen = "home" }
                         )
-
                         "player" -> PlayerScreen(
-                            transcriptData = transcriptData,
-                            title = testTitle,
+                            transcriptData = currentTranscript,
+
+                            title = currentPodcastTitle,
+                            audioResId = currentAudioId,
                             savedWords = savedWordsList.map { it.learning },
 
                             onSaveWord = { wordItem ->
                                 coroutineScope.launch(Dispatchers.IO) {
                                     val cleanWord = wordItem.word.trim { !it.isLetterOrDigit() }
-
-                                    // 2.5s Audio Padding
                                     val paddingMillis = 2500L
                                     val newStartTime = maxOf(0L, wordItem.startTime - paddingMillis).toInt()
                                     val newEndTime = (wordItem.endTime + paddingMillis).toInt()
@@ -140,11 +159,11 @@ class MainActivity : ComponentActivity() {
                             },
                             onBackClick = { currentScreen = "home" }
                         )
+
                         "wordlib" -> WordLibraryScreen(
                             onHomeClick = { currentScreen = "home" },
                             savedWords = savedWordsList,
                             masteryThreshold = currentMasteryThreshold,
-
                             onDeleteWord = { wordToDelete ->
                                 coroutineScope.launch(Dispatchers.IO) {
                                     wordDao.deleteByWord(wordToDelete)
@@ -166,7 +185,6 @@ class MainActivity : ComponentActivity() {
                                 coroutineScope.launch(Dispatchers.IO) {
                                     val allWords = wordDao.getAllSavedWords()
                                     withContext(Dispatchers.Main) {
-                                        // Minimum 4 words check
                                         if (allWords.size < 4) {
                                             Toast.makeText(context, "Save at least 4 words to start a quiz!", Toast.LENGTH_SHORT).show()
                                         } else {
@@ -178,8 +196,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             },
-                            onSettingClick = {currentScreen = "setting"}
-
+                            onSettingClick = { currentScreen = "setting" }
                         )
 
                         "word_detail" -> {
@@ -212,9 +229,9 @@ fun PodcastDetailDialog(podcast: Podcast, onDismiss: () -> Unit, onPlayClick: ()
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_podcast_card), // Placeholder
+                    painter = painterResource(id = R.drawable.ic_podcast_card),
                     contentDescription = "Podcast Image",
-                    modifier = Modifier.size(100.dp) // Added size for consistency
+                    modifier = Modifier.size(100.dp)
                 )
                 Spacer(Modifier.height(16.dp))
                 Text(podcast.title, fontSize = 20.sp, fontWeight = FontWeight.Bold)

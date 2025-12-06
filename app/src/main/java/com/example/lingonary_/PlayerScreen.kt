@@ -40,7 +40,6 @@ import com.example.lingonary_.ui.theme.TextBlack
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
-// --- COLORS ---
 val LingoGreen = Color(0xFF2E5E38)
 val LingoGrey = Color(0xFFC0C0C0)
 val LingoBlue = Color(0xFF396B92)
@@ -56,14 +55,14 @@ fun formatTime(millis: Long): String {
 fun PlayerScreen(
     transcriptData: List<WordTimestamp>,
     title: String,
+    audioResId: Int,
     savedWords: List<String>,
     onSaveWord: (WordTimestamp) -> Unit,
     onUnsaveWord: (WordTimestamp) -> Unit,
-    audioResId: Int = R.raw.tradicion_navidena,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
-    //--Rebuild text--
+    // --Rebuild text--
     val (fullText, wordRanges) = remember(transcriptData) {
         val sb = StringBuilder()
         val ranges = mutableListOf<Triple<WordTimestamp, Int, Int>>()
@@ -76,20 +75,27 @@ fun PlayerScreen(
         }
         Pair(sb.toString(), ranges)
     }
+
     // --states --
-    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var isPlaying by remember { mutableStateOf(false) }
     var currentMillis by remember { mutableLongStateOf(0L) }
-    var duration by remember { mutableIntStateOf(0) }
     var isDragging by remember { mutableStateOf(false) }
     var dragProgress by remember { mutableFloatStateOf(0f) }
-    val barHeights = remember { List(35) { Random.nextInt(15, 40).dp } }
+    val barHeights = remember { List(35) { (15 + Random.nextInt(25)).dp } }
     val scrollState = rememberScrollState()
     var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
     var columnHeightPx by remember { mutableIntStateOf(0) }
-
     var selectedWordItem by remember { mutableStateOf<WordTimestamp?>(null) }
     var showDefinitionDialog by remember { mutableStateOf(false) }
+    val mediaPlayer = remember(audioResId) {
+        try {
+            MediaPlayer.create(context, audioResId)
+        } catch (e: Exception) {
+            null
+        }
+    }
+    // Duration updates when player updates
+    var duration by remember(mediaPlayer) { mutableIntStateOf(mediaPlayer?.duration ?: 0) }
 
     val isCurrentWordSaved = remember(selectedWordItem, savedWords) {
         if (selectedWordItem == null) false
@@ -98,18 +104,19 @@ fun PlayerScreen(
             savedWords.contains(cleanWord)
         }
     }
-    //--initialize player--
-    DisposableEffect(Unit) {
-        val mp = MediaPlayer.create(context, audioResId)
-        if (mp != null) {
-            mp.setOnCompletionListener { isPlaying = false; currentMillis = 0; if(!isDragging) dragProgress=0f }
-            duration = mp.duration
-            mediaPlayer = mp
+
+    // --lifecycle / cleanup--
+    DisposableEffect(mediaPlayer) {
+        mediaPlayer?.setOnCompletionListener {
+            isPlaying = false;
+            currentMillis = 0;
+            if(!isDragging) dragProgress=0f
         }
+        // Release old player when audioResId changes
         onDispose { mediaPlayer?.release() }
     }
 
-    //--timer loop--
+    // --timer loop--
     LaunchedEffect(isPlaying, isDragging) {
         while (isPlaying && !isDragging) {
             mediaPlayer?.let { currentMillis = it.currentPosition.toLong() }
@@ -132,8 +139,6 @@ fun PlayerScreen(
             }
         }
     }
-
-    //--UI layout--
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().background(Color.White).padding(16.dp).systemBarsPadding()) {
             // header
@@ -180,7 +185,7 @@ fun PlayerScreen(
                 Box(modifier = Modifier.fillMaxWidth().height(50.dp)
                     .pointerInput(Unit) {
                         detectHorizontalDragGestures(
-                            onDragStart = { _ -> isDragging = true },  // Fix: Takes an offset argument
+                            onDragStart = { _ -> isDragging = true },
                             onDragEnd = {
                                 isDragging = false
                                 mediaPlayer?.let {
@@ -189,8 +194,7 @@ fun PlayerScreen(
                                 }
                             },
                             onDragCancel = { isDragging = false },
-                            onHorizontalDrag = { change, _ ->   // Fix: Correct name is onHorizontalDrag
-                                // Update visual progress
+                            onHorizontalDrag = { change, _ ->
                                 dragProgress = (change.position.x / size.width.toFloat()).coerceIn(0f, 1f)
                             }
                         )
@@ -207,34 +211,48 @@ fun PlayerScreen(
                 ) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
                         barHeights.forEachIndexed { index, height ->
-                            val isBarPlayed = activeProgress > (index / 35f)
+                            val isBarPlayed = activeProgress > (index.toFloat() / barHeights.size.toFloat())
                             Box(modifier = Modifier.weight(1f).height(height).clip(RoundedCornerShape(4.dp)).background(if (isBarPlayed) LingoGreen else LingoGrey))
                         }
                     }
                 }
-                //2.Timestamps
+
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(formatTime(displayMillis), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                     Text(formatTime(duration.toLong()), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
-
-                //3.Buttons
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = {}) { Icon(Icons.Filled.Refresh, "Loop", tint = Color.Black) }
                     IconButton(onClick = { mediaPlayer?.let { it.seekTo((it.currentPosition - 5000).coerceAtLeast(0)) } }) { Icon(Icons.Filled.ArrowBack, "-5s", tint = Color.Black) }
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(72.dp).border(2.dp, Color.Black, RoundedCornerShape(24.dp)).clickable { mediaPlayer?.let { if (isPlaying) { it.pause(); isPlaying = false } else { it.start(); isPlaying = true } } }) {
-                        Icon(painterResource(if (isPlaying) R.drawable.ic_stop else R.drawable.ic_play_), if (isPlaying) "Stop" else "Play", Modifier.size(32.dp), tint = Color.Black)
+
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(72.dp)
+                            .border(2.dp, Color.Black, RoundedCornerShape(24.dp))
+                            .clickable {
+                                mediaPlayer?.let {
+                                    if (isPlaying) { it.pause(); isPlaying = false }
+                                    else { it.start(); isPlaying = true }
+                                }
+                            }
+                    ) {
+                        Icon(
+                            painterResource(if (isPlaying) R.drawable.ic_stop else R.drawable.ic_play_),
+                            if (isPlaying) "Stop" else "Play",
+                            Modifier.size(32.dp),
+                            tint = Color.Black
+                        )
                     }
+
                     IconButton(onClick = { mediaPlayer?.let { it.seekTo((it.currentPosition + 5000).coerceAtMost(duration)) } }) { Icon(Icons.Filled.ArrowForward, "+5s", tint = Color.Black) }
                     IconButton(onClick = {}) { Icon(Icons.Filled.MoreVert, "More", tint = Color.Black) }
                 }
                 Spacer(modifier = Modifier.height(20.dp))
             }
         }
-
-        //--Definition pop-up--
         if (showDefinitionDialog && selectedWordItem != null) {
             val resumePlayback = {
                 showDefinitionDialog = false
@@ -247,7 +265,6 @@ fun PlayerScreen(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text(selectedWordItem!!.word.trim { !it.isLetterOrDigit() }, style = MaterialTheme.typography.headlineSmall, color = LingoBlue, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            // 4. THIS BUTTON NOW CALLS THE DATABASE ACTIONS
                             IconButton(onClick = {
                                 if (isCurrentWordSaved) {
                                     onUnsaveWord(selectedWordItem!!)
