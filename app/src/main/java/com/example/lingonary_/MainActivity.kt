@@ -177,7 +177,9 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 }
-                            }
+                            },
+                            onSettingClick = {currentScreen = "setting"}
+
                         )
 
                         "word_detail" -> {

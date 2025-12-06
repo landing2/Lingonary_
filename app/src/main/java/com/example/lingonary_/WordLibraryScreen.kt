@@ -34,7 +34,8 @@ fun WordLibraryScreen(
     masteryThreshold: Int,
     onDeleteWord: (String) -> Unit,
     onWordOptionsClick: (String) -> Unit,
-    onReviewClick: () -> Unit
+    onReviewClick: () -> Unit,
+    onSettingClick: () -> Unit
 ) {
     val listState = rememberLazyListState()
     // New: Not seen in quiz yet
@@ -47,7 +48,10 @@ fun WordLibraryScreen(
     Scaffold(
         containerColor = BackgroundGray,
         bottomBar = {
-            WordLibBottomNavBar(onHomeClick = onHomeClick)
+            WordLibBottomNavBar(
+                onHomeClick = onHomeClick,
+                onSettingClick = onSettingClick
+            )
         }
     ) { paddingValues ->
         Box(
@@ -224,13 +228,14 @@ fun StatusCard(color: Color, title: String, value: String, modifier: Modifier = 
     }
 }
 @Composable
-fun WordLibBottomNavBar(onHomeClick: () -> Unit) {
+fun WordLibBottomNavBar(onHomeClick: () -> Unit, onSettingClick: () -> Unit) {
     Box(modifier = Modifier.fillMaxWidth().padding(20.dp).height(80.dp)) {
         Surface(modifier = Modifier.fillMaxSize(), shape = RoundedCornerShape(35.dp), color = White, shadowElevation = 10.dp, border = androidx.compose.foundation.BorderStroke(1.dp, NavStroke)) {
             Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                 NavIcon(R.drawable.ic_home_filled, "Home", false, onHomeClick)
                 NavIcon(R.drawable.ic_wordlib, "Word Library", true, {})
-                NavIcon(R.drawable.ic_setting_unfilled, "Setting", false, {})
+                NavIcon(R.drawable.ic_setting_unfilled, "Setting", false, onSettingClick)
+
             }
         }
     }
