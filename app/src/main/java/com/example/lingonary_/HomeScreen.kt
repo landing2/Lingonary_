@@ -59,7 +59,6 @@ fun HomeScreen(
                 .padding(horizontal = 24.dp)
         ) {
             Spacer(modifier = Modifier.height(20.dp))
-
             // --header--
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -103,8 +102,7 @@ fun HomeScreen(
                 }
             }
             Spacer(modifier = Modifier.height(30.dp))
-
-            //--Search bar (STATIC)--
+            //--Search bar--
             SearchBar(searchQuery, { searchQuery = it }, filteredForSearch) { podcast ->
                 onPodcastClick(podcast)
                 searchQuery = "" // Clear search after selection
@@ -169,18 +167,27 @@ fun SearchBar(
     onSuggestionClick: (Podcast) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-
+    LaunchedEffect(query, suggestions) {
+        if (query.isNotEmpty() && suggestions.isNotEmpty()) {
+            expanded = true
+        } else if (query.isEmpty()) {
+            expanded = false
+        }
+    }
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded && query.isNotEmpty() }
     ) {
         TextField(
             value = query,
-            onValueChange = onQueryChange,
+            onValueChange = { newValue ->
+                onQueryChange(newValue)
+                if (newValue.isNotEmpty()) expanded = true
+            },
             placeholder = { Text("Search for podcasts...") },
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor(), // Connects the text field to the menu
+                .menuAnchor(),
             leadingIcon = { Icon(painterResource(id = R.drawable.ic_search_bar), contentDescription = "Search") },
             shape = RoundedCornerShape(18.dp),
             colors = TextFieldDefaults.colors(
@@ -230,6 +237,7 @@ fun SectionHeader(title: String, showClear: Boolean = false, onClearClick: () ->
                 style = TextStyle(fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Bold),
                 modifier = Modifier.clickable(onClick = onClearClick)
             )
+            //View all is no longer needed given we only have 2 podcasts rather than a bunch for this prototype. Can be added if we have more mock data later
 //        } else {
 //            Text(
 //                text = "View All",
