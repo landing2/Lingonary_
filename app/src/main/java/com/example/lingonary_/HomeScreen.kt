@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -29,20 +28,27 @@ import com.example.lingonary_.ui.theme.*
 
 @Composable
 fun HomeScreen(
-    podcasts: List<Podcast>,
+    featuredPodcasts: List<Podcast>,
+    recentPodcasts: List<Podcast>,
+    allPodcasts: List<Podcast>,
     onPodcastClick: (Podcast) -> Unit,
     onWordLibClick: () -> Unit = {},
+    onClearRecent: () -> Unit,
+    onSettingClick: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    val featuredPodcasts = podcasts.take(3)
-    val recentPodcasts = podcasts.drop(3).take(3)
-    val filteredForSearch = podcasts.filter { it.title.contains(searchQuery, ignoreCase = true) }
+    val filteredForSearch = if (searchQuery.isEmpty()) {
+        emptyList()
+    } else {
+        allPodcasts.filter { it.title.contains(searchQuery, ignoreCase = true) }
+    }
 
     Scaffold(
         containerColor = BackgroundGray,
         bottomBar = {
             HomeBottomNavBar(
-                onWordLibClick = onWordLibClick
+                onWordLibClick = onWordLibClick,
+                onSettingClick = onSettingClick
             )
         }
     ) { paddingValues ->
@@ -54,7 +60,7 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // --- HEADER (STATIC) ---
+            // --header--
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -84,7 +90,7 @@ fun HomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Spanish",
+                            text = "Chinese",
                             style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                         )
                     }
@@ -99,15 +105,10 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(30.dp))
 
             //--Search bar (STATIC)--
-            SearchBar(
-                query = searchQuery,
-                onQueryChange = { searchQuery = it },
-                suggestions = filteredForSearch,
-                onSuggestionClick = {
-                    onPodcastClick(it) // Show popup
-                    searchQuery = "" // Clear query
-                }
-            )
+            SearchBar(searchQuery, { searchQuery = it }, filteredForSearch) { podcast ->
+                onPodcastClick(podcast)
+                searchQuery = "" // Clear search after selection
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -124,9 +125,9 @@ fun HomeScreen(
                 }
 
                 item {
-                    SectionHeader("Recent Played")
+                    SectionHeader("Recent Played", showClear = true, onClearClick = onClearRecent)
                     Spacer(modifier = Modifier.height(12.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.height(140.dp)) {
                         items(recentPodcasts) { podcast ->
                             PodcastItem(podcast, onPodcastClick)
                         }
@@ -155,7 +156,7 @@ fun PodcastItem(podcast: Podcast, onPodcastClick: (Podcast) -> Unit) {
                 .clip(RoundedCornerShape(12.dp)),
             contentScale = ContentScale.Crop
         )
-        Text(text = podcast.title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+        Text(text = podcast.title, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -167,21 +168,19 @@ fun SearchBar(
     suggestions: List<Podcast>,
     onSuggestionClick: (Podcast) -> Unit
 ) {
-    var isFocused by remember { mutableStateOf(false) }
-    val expanded = isFocused && query.isNotEmpty()
+    var expanded by remember { mutableStateOf(false) }
 
-    Box {
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded && query.isNotEmpty() }
+    ) {
         TextField(
             value = query,
             onValueChange = onQueryChange,
             placeholder = { Text("Search for podcasts...") },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp)
-                .shadow(2.dp, RoundedCornerShape(18.dp))
-                .background(White, RoundedCornerShape(18.dp))
-                .border(1.dp, BlackStroke, RoundedCornerShape(18.dp))
-                .onFocusChanged { isFocused = it.isFocused },
+                .menuAnchor(), // Connects the text field to the menu
             leadingIcon = { Icon(painterResource(id = R.drawable.ic_search_bar), contentDescription = "Search") },
             shape = RoundedCornerShape(18.dp),
             colors = TextFieldDefaults.colors(
@@ -193,26 +192,29 @@ fun SearchBar(
             )
         )
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { isFocused = false },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            suggestions.forEach { podcast ->
-                DropdownMenuItem(
-                    text = { Text(text = podcast.title) },
-                    onClick = {
-                        onSuggestionClick(podcast)
-                        isFocused = false
-                    }
-                )
+        if (suggestions.isNotEmpty()) {
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(White)
+            ) {
+                suggestions.forEach { podcast ->
+                    DropdownMenuItem(
+                        text = { Text(text = podcast.title) },
+                        onClick = {
+                            onSuggestionClick(podcast)
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
     }
 }
 
+
 @Composable
-fun SectionHeader(title: String) {
+fun SectionHeader(title: String, showClear: Boolean = false, onClearClick: () -> Unit = {}) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -222,15 +224,23 @@ fun SectionHeader(title: String) {
             text = title,
             style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextBlack)
         )
-//        Text(
-//            text = "View All",
-//            style = TextStyle(fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
-//        )
+        if (showClear) {
+            Text(
+                text = "Clear",
+                style = TextStyle(fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Bold),
+                modifier = Modifier.clickable(onClick = onClearClick)
+            )
+//        } else {
+//            Text(
+//                text = "View All",
+//                style = TextStyle(fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+//            )
+        }
     }
 }
 
 @Composable
-fun HomeBottomNavBar(onWordLibClick: () -> Unit) {
+fun HomeBottomNavBar(onWordLibClick: () -> Unit,onSettingClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -265,7 +275,7 @@ fun HomeBottomNavBar(onWordLibClick: () -> Unit) {
                     iconRes = R.drawable.ic_setting_unfilled,
                     label = "Setting",
                     isSelected = false,
-                    onClick = {}
+                    onClick = onSettingClick
                 )
             }
         }

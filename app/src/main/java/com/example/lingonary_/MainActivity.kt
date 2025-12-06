@@ -1,21 +1,15 @@
 package com.example.lingonary_
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,42 +35,43 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val testTitle = "Tradición Navideña"
-
         setContent {
             Lingonary_Theme {
                 val context = LocalContext.current
                 val lifecycleOwner = LocalLifecycleOwner.current
-
                 val allPodcasts = remember {
                     List(9) { i -> Podcast(title = "Podcast ${i + 1}") }
                 }
-
                 var currentScreen by remember { mutableStateOf("home") }
                 var selectedWordObj by remember { mutableStateOf<Word?>(null) }
                 var selectedPodcast by remember { mutableStateOf<Podcast?>(null) }
-
+                val sharedPrefs = remember { context.getSharedPreferences("lingonary_prefs", Context.MODE_PRIVATE) }
+                var recentPodcastTitles by remember { mutableStateOf(sharedPrefs.getStringSet("recent_podcasts", emptySet()) ?: emptySet()) }
+                val recentPodcasts = remember(recentPodcastTitles) {
+                    allPodcasts.filter { it.title in recentPodcastTitles }
+                }
+                val featuredPodcasts = remember(recentPodcasts) {
+                    allPodcasts.filter { it !in recentPodcasts }.take(3)
+                }
+                val onClearRecent = {
+                    sharedPrefs.edit().putStringSet("recent_podcasts", emptySet()).apply()
+                    recentPodcastTitles = emptySet()
+                }
                 val coroutineScope = rememberCoroutineScope()
                 val db = remember { WordDatabase.getInstance(context) }
                 val wordDao = remember { db.wordDao() }
                 val transcriptData = remember { loadTranscriptFromJson(context, "tradicion_navidena.json") }
                 var savedWordsList by remember { mutableStateOf<List<Word>>(emptyList()) }
-
-                if (selectedPodcast != null) {
-                    PodcastDetailDialog(
-                        podcast = selectedPodcast!!,
-                        onDismiss = { selectedPodcast = null },
-                        onPlayClick = {
-                            selectedPodcast = null
-                            currentScreen = "player"
-                        }
-                    )
-                }
-
+                var currentMasteryThreshold by remember { mutableIntStateOf(6) }
                 DisposableEffect(lifecycleOwner) {
                     val observer = LifecycleEventObserver { _, event ->
                         if (event == Lifecycle.Event.ON_RESUME) {
                             coroutineScope.launch(Dispatchers.IO) {
+                                // 1. Refresh Words
                                 savedWordsList = wordDao.getAllSavedWords()
+                                // 2. Refresh Threshold Setting
+                                val prefs = context.getSharedPreferences("lingonary_prefs", Context.MODE_PRIVATE)
+                                currentMasteryThreshold = prefs.getInt("mastery_threshold", 6)
                             }
                         }
                     }
@@ -85,14 +80,38 @@ class MainActivity : ComponentActivity() {
                         lifecycleOwner.lifecycle.removeObserver(observer)
                     }
                 }
+                if (selectedPodcast != null) {
+                    PodcastDetailDialog(
+                        podcast = selectedPodcast!!,
+                        onDismiss = { selectedPodcast = null },
+                        onPlayClick = {
+                            val podcastToPlay = selectedPodcast!!
+                            val updatedTitles = recentPodcastTitles + podcastToPlay.title
+                            sharedPrefs.edit().putStringSet("recent_podcasts", updatedTitles).apply()
+                            recentPodcastTitles = updatedTitles
+                            selectedPodcast = null
+                            currentScreen = "player"
+                        }
+                    )
+                }
 
+                // --- MAIN NAVIGATION ---
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     when (currentScreen) {
                         "home" -> HomeScreen(
-                            podcasts = allPodcasts,
+                            featuredPodcasts = featuredPodcasts,
+                            recentPodcasts = recentPodcasts,
+                            allPodcasts = allPodcasts,
                             onPodcastClick = { podcast -> selectedPodcast = podcast },
-                            onWordLibClick = { currentScreen = "wordlib" }
+                            onWordLibClick = { currentScreen = "wordlib" },
+                            onSettingClick = { currentScreen = "setting" },
+                            onClearRecent = onClearRecent
                         )
+
+                        "setting" -> SettingsScreen(
+                            onBackClick = { currentScreen = "home" }
+                        )
+
                         "player" -> PlayerScreen(
                             transcriptData = transcriptData,
                             title = testTitle,
@@ -101,6 +120,8 @@ class MainActivity : ComponentActivity() {
                             onSaveWord = { wordItem ->
                                 coroutineScope.launch(Dispatchers.IO) {
                                     val cleanWord = wordItem.word.trim { !it.isLetterOrDigit() }
+
+                                    // 2.5s Audio Padding
                                     val paddingMillis = 2500L
                                     val newStartTime = maxOf(0L, wordItem.startTime - paddingMillis).toInt()
                                     val newEndTime = (wordItem.endTime + paddingMillis).toInt()
@@ -122,6 +143,8 @@ class MainActivity : ComponentActivity() {
                         "wordlib" -> WordLibraryScreen(
                             onHomeClick = { currentScreen = "home" },
                             savedWords = savedWordsList,
+                            masteryThreshold = currentMasteryThreshold,
+
                             onDeleteWord = { wordToDelete ->
                                 coroutineScope.launch(Dispatchers.IO) {
                                     wordDao.deleteByWord(wordToDelete)
@@ -141,16 +164,22 @@ class MainActivity : ComponentActivity() {
                             },
                             onReviewClick = {
                                 coroutineScope.launch(Dispatchers.IO) {
-                                    val allWords = wordDao.getAllWords()
-                                    val wordArrayList = ArrayList(allWords)
+                                    val allWords = wordDao.getAllSavedWords()
                                     withContext(Dispatchers.Main) {
-                                        val intent = Intent(context, QuizActivity::class.java)
-                                        intent.putParcelableArrayListExtra("wordList", wordArrayList)
-                                        context.startActivity(intent)
+                                        // Minimum 4 words check
+                                        if (allWords.size < 4) {
+                                            Toast.makeText(context, "Save at least 4 words to start a quiz!", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            val wordArrayList = ArrayList(allWords)
+                                            val intent = Intent(context, QuizActivity::class.java)
+                                            intent.putParcelableArrayListExtra("wordList", wordArrayList)
+                                            context.startActivity(intent)
+                                        }
                                     }
                                 }
                             }
                         )
+
                         "word_detail" -> {
                             if (selectedWordObj != null) {
                                 WordDetailScreen(
@@ -182,7 +211,8 @@ fun PodcastDetailDialog(podcast: Podcast, onDismiss: () -> Unit, onPlayClick: ()
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_podcast_card), // Placeholder
-                    contentDescription = "Podcast Image"
+                    contentDescription = "Podcast Image",
+                    modifier = Modifier.size(100.dp) // Added size for consistency
                 )
                 Spacer(Modifier.height(16.dp))
                 Text(podcast.title, fontSize = 20.sp, fontWeight = FontWeight.Bold)

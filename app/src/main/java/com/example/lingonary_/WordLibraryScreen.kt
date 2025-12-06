@@ -26,23 +26,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.lingonary_.models.Word
 import com.example.lingonary_.ui.theme.*
+
 @Composable
 fun WordLibraryScreen(
     onHomeClick: () -> Unit,
     savedWords: List<Word>,
+    masteryThreshold: Int,
     onDeleteWord: (String) -> Unit,
     onWordOptionsClick: (String) -> Unit,
     onReviewClick: () -> Unit
 ) {
     val listState = rememberLazyListState()
-
-    // Calculation logic for word status in word library
-    // Kotlin calls Java getter isHasBeenInQuiz() via property syntax .hasBeenInQuiz
+    // New: Not seen in quiz yet
     val newWordsCount = savedWords.count { !it.hasBeenInQuiz }
-    // Mastered = 3 or more correct
-    val masteredCount = savedWords.count { it.timesCorrect >= 3 }
-    // Learning = Seen in quiz, but less than 3 correct
-    val learningCount = savedWords.count { it.hasBeenInQuiz && it.timesCorrect < 3 }
+    // Mastered: Times correct >= User's Setting
+    val masteredCount = savedWords.count { it.timesCorrect >= masteryThreshold }
+    // Learning: Seen in quiz, but score is below threshold
+    val learningCount = savedWords.count { it.hasBeenInQuiz && it.timesCorrect < masteryThreshold }
 
     Scaffold(
         containerColor = BackgroundGray,
@@ -64,7 +64,6 @@ fun WordLibraryScreen(
                 contentPadding = PaddingValues(bottom = 100.dp)
             ) {
                 item { Spacer(modifier = Modifier.height(20.dp)) }
-                //--header--
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -98,16 +97,17 @@ fun WordLibraryScreen(
                         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
                 }
-
-                //--status cards with dynamic numbers---
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth().height(150.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        // Mastered Card
                         StatusCard(MasteredGreen, "Words\nMastered", "$masteredCount", Modifier.weight(1f).fillMaxHeight())
                         Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Learning Card
                             StatusCard(BadgeYellow, "Learning: $learningCount", "", Modifier.weight(1f).fillMaxWidth(), true)
+                            // New Card
                             StatusCard(NewRed, "New: $newWordsCount", "", Modifier.weight(1f).fillMaxWidth(), true)
                         }
                     }
@@ -120,24 +120,26 @@ fun WordLibraryScreen(
                         modifier = Modifier.padding(top = 16.dp)
                     )
                 }
-                //--word list--
                 if (savedWords.isEmpty()) {
                     item {
                         Box(modifier = Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
-                            Text("No words saved yet.", style = TextStyle(color = Color.Gray, fontSize = 14.sp))
+                            Text(
+                                text = "No words saved yet.",
+                                style = TextStyle(color = Color.Gray, fontSize = 14.sp)
+                            )
                         }
                     }
                 } else {
                     itemsIndexed(savedWords) { _, wordObj ->
                         WordListItem(
-                            text = wordObj.learning,
-                            onDeleteClick = { onDeleteWord(wordObj.learning) },
-                            onOptionsClick = { onWordOptionsClick(wordObj.learning) }
+                            wordObj = wordObj,
+                            masteryThreshold = masteryThreshold,
+                            onDeleteClick = {onDeleteWord(wordObj.learning)},
+                            onOptionsClick = {onWordOptionsClick(wordObj.learning)}
                         )
                     }
                 }
             }
-            //--Review/Quiz button that leads to review/quiz section--
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -159,16 +161,51 @@ fun WordLibraryScreen(
     }
 }
 @Composable
-fun WordListItem(text: String, onDeleteClick: () -> Unit, onOptionsClick: () -> Unit) {
+fun WordListItem(
+    wordObj: Word,
+    masteryThreshold: Int,
+    onDeleteClick: () -> Unit,
+    onOptionsClick: () -> Unit
+) {
     Box(
-        modifier = Modifier.fillMaxWidth().height(60.dp).background(Color(0xFFEAEAEA), RoundedCornerShape(12.dp)).padding(horizontal = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(60.dp)
+            .background(Color(0xFFEAEAEA), RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-            Text(text = text, style = TextStyle(color = TextBlack, fontSize = 16.sp, fontWeight = FontWeight.Medium), maxLines = 1, modifier = Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = Icons.Default.Close, contentDescription = "Remove", tint = Color.Gray, modifier = Modifier.size(24.dp).clickable { onDeleteClick() })
-                Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Options", tint = Color.Gray, modifier = Modifier.size(24.dp).clickable { onOptionsClick() })
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                // The Word
+                Text(
+                    text = wordObj.learning,
+                    style = TextStyle(color = TextBlack, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                )
+                Text(
+                    text = "Score: ${wordObj.timesCorrect} / $masteryThreshold",
+                    style = TextStyle(color = Color.Gray, fontSize = 12.sp)
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Remove",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(24.dp).clickable { onDeleteClick() }
+                )
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Options",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(24.dp).clickable { onOptionsClick() }
+                )
             }
         }
     }
