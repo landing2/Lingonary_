@@ -150,7 +150,7 @@ fun PlayerScreen(
                 Spacer(modifier = Modifier.weight(1f))
                 Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = TextBlack)
                 Spacer(modifier = Modifier.weight(1f))
-                IconButton(onClick = onGotoLibrary) { Icon(painterResource(id = R.drawable.ic_wordlib), "Word Library", tint = Color.Black) }
+                IconButton(onClick = onGotoLibrary) { Icon(painterResource(id = R.drawable.ic_wordlib), "Word Library") }
             }
             // Transcript
             Column(modifier = Modifier.weight(1f).verticalScroll(scrollState).onSizeChanged { columnHeightPx = it.height }) {
