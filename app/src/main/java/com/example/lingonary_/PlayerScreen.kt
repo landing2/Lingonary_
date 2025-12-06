@@ -17,8 +17,10 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Forward5
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Replay5
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -224,8 +226,8 @@ fun PlayerScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = {}) { Icon(Icons.Filled.Refresh, "Loop", tint = Color.Black) }
-                    IconButton(onClick = { mediaPlayer?.let { it.seekTo((it.currentPosition - 5000).coerceAtLeast(0)) } }) { Icon(Icons.Filled.ArrowBack, "-5s", tint = Color.Black) }
+                    IconButton(onClick = { mediaPlayer?.let { it.seekTo(0) }}) { Icon(Icons.Filled.Refresh, "Loop", tint = Color.Black) }
+                    IconButton(onClick = { mediaPlayer?.let { it.seekTo((it.currentPosition - 5000).coerceAtLeast(0)) } }) { Icon(Icons.Filled.Replay5, "-5s", tint = Color.Black) }
 
                     Box(
                         contentAlignment = Alignment.Center,
@@ -247,8 +249,8 @@ fun PlayerScreen(
                         )
                     }
 
-                    IconButton(onClick = { mediaPlayer?.let { it.seekTo((it.currentPosition + 5000).coerceAtMost(duration)) } }) { Icon(Icons.Filled.ArrowForward, "+5s", tint = Color.Black) }
-                    IconButton(onClick = {}) { Icon(Icons.Filled.MoreVert, "More", tint = Color.Black) }
+                    IconButton(onClick = { mediaPlayer?.let { it.seekTo((it.currentPosition + 5000).coerceAtMost(duration)) } }) { Icon(Icons.Filled.Forward5, "+5s", tint = Color.Black) }
+                    IconButton(onClick = {}) { Icon(Icons.Filled.MoreVert,  "More", tint = Color.Gray) }
                 }
                 Spacer(modifier = Modifier.height(20.dp))
             }
